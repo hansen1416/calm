@@ -71,3 +71,55 @@
      * Extract SES `messageId`.
      * Map `messageId` → your `EmailJob`.
      * On `open` event: set `opened_at = now()` (and optionally increment open counters per campaign).
+
+
+
+----------------------------
+
+
+
+Good — with 3 verified emails, the next practical step is to **validate your sending path**, then **wrap it with a queue + worker**.
+
+## 1) Send one email via API (sanity check)
+
+Use **SESv2 `SendEmail`** (simple) from your verified sender → one verified recipient. ([AWS Documentation][1])
+Make sure you’re using the **same AWS region** where the identity is verified. ([AWS Documentation][2])
+
+## 2) Build the queue architecture (SQS → Lambda → SES)
+
+**Recommended minimal pipeline**
+
+1. **Create an SQS queue** (plus a DLQ).
+2. **Create a Lambda consumer** triggered by SQS.
+3. Lambda parses each message and calls **SESv2 `SendEmail`**.
+4. On success: delete message; on failure: let Lambda/SQS retry, then DLQ.
+
+AWS has canonical guidance for “Lambda → SES send” and “Lambda consumes SQS” that matches this pattern. ([Repost][3])
+
+## 3) Apply sandbox constraints (important for queues)
+
+While in the **SES sandbox**, enforce throttling in your worker:
+
+* **Max 200 messages / 24h** and **~1 message/second** (sandbox defaults). ([AWS Documentation][4])
+  So set **Lambda reserved concurrency = 1** (simple throttle) or implement rate limiting.
+
+## 4) IAM permissions for the worker
+
+Give the Lambda execution role:
+
+* `ses:SendEmail` (and `ses:SendRawEmail` only if you need MIME/attachments),
+* CloudWatch Logs permissions.
+
+This is required for Lambda to call SES. ([Repost][3])
+
+## 5) (Optional, but good) Observability + failure handling
+
+* Use CloudWatch logs/metrics for sends.
+* If you later move out of sandbox, add bounce/complaint handling (SNS/event publishing), but you can postpone this for sandbox-only testing.
+
+If you want, I can give you a minimal SQS message schema + a short Lambda (Python/Node) `SendEmail` handler that respects the 1 msg/s sandbox rate.
+
+[1]: https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html?utm_source=chatgpt.com "SendEmail - Amazon Simple Email Service"
+[2]: https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html?utm_source=chatgpt.com "Creating and verifying identities in Amazon SES"
+[3]: https://repost.aws/knowledge-center/lambda-send-email-ses?utm_source=chatgpt.com "How do I use Lambda and Amazon SES to send email?"
+[4]: https://docs.aws.amazon.com/ses/latest/dg/manage-sending-quotas.html?utm_source=chatgpt.com "Managing your Amazon SES sending limits"
