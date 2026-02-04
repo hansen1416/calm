@@ -123,3 +123,14 @@ If you want, I can give you a minimal SQS message schema + a short Lambda (Pytho
 [2]: https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html?utm_source=chatgpt.com "Creating and verifying identities in Amazon SES"
 [3]: https://repost.aws/knowledge-center/lambda-send-email-ses?utm_source=chatgpt.com "How do I use Lambda and Amazon SES to send email?"
 [4]: https://docs.aws.amazon.com/ses/latest/dg/manage-sending-quotas.html?utm_source=chatgpt.com "Managing your Amazon SES sending limits"
+
+
+-------------
+
+
+* **Frontend**: Host as static files on **S3 + CloudFront**. No server-side rendering at this stage; revisit later if needed.
+* **Backend**: Run **Laravel locally with Sail** for development.
+* **Email workflow**: Use **SQS** for queuing and **SES** for sending; emulate both locally with **LocalStack** via the **AWS SDK**.
+* **Future deployment**: If moving Laravel to **Lambda**, adapt at that stage; current focus is feature development.
+* **Authentication**: **Cognito** can also be emulated locally using **LocalStack**.
+* **Overall approach**: Develop everything locally first, then deploy smoothly to AWS when ready.
